@@ -11,7 +11,9 @@ from starlette.routing import Route, Mount
 from dotenv import load_dotenv
 
 
-ALLOW_METHODS = (os.getenv("ALLOW_METHODS") or "select,update,show").split(',')
+# 加载.env文件
+load_dotenv()
+ALLOW_METHODS = (os.getenv("ALLOW_METHODS") or "select,update,show,insert,create").split(',')
 
 
 def get_db_config():
@@ -29,10 +31,6 @@ def get_db_config():
     异常:
         ValueError: 当必需的配置信息缺失时抛出
     """
-
-    # 加载.env文件
-    load_dotenv()
-
     config = {
         "host": os.getenv("MYSQL_HOST", "localhost"),
         "port": int(os.getenv("MYSQL_PORT", "3306")),
