@@ -10,6 +10,10 @@ from starlette.applications import Starlette
 from starlette.routing import Route, Mount
 from dotenv import load_dotenv
 
+
+ALLOW_METHODS = (os.getenv("ALLOW_METHODS") or "select,update,show").split(',')
+
+
 def get_db_config():
 
     """从环境变量获取数据库配置信息
@@ -36,7 +40,6 @@ def get_db_config():
         "password": os.getenv("MYSQL_PASSWORD"),
         "database": os.getenv("MYSQL_DATABASE")
     }
-    print(config)
     if not all([config["user"], config["password"], config["database"]]):
         raise ValueError("缺少必需的数据库配置")
 
@@ -74,6 +77,17 @@ def get_chinese_initials(text) -> list[TextContent]:
     # 用逗号连接所有结果
     return [TextContent(type="text", text=','.join(initials))]
 
+
+def my_check(statement: str) -> str:
+    if ';' in statement:
+        return "【内部安全检查】禁止一次执行多条"
+    
+    cmd = statement.split(' ')[0].lower()
+    if cmd not in ALLOW_METHODS:
+        return f"【内部安全检查】不允许的操作：{cmd}, 目前允许{ALLOW_METHODS}"
+    return ""
+
+
 def execute_sql(query : str) -> list[TextContent]:
     """执行SQL查询语句
 
@@ -99,6 +113,10 @@ def execute_sql(query : str) -> list[TextContent]:
 
                 for statement in statements:
                     try:
+                        error_msg = my_check(statement)
+                        if error_msg:
+                            raise ValueError(error_msg)
+
                         cursor.execute(statement)
 
                         # 检查语句是否返回了结果集 (SELECT, SHOW, EXPLAIN, etc.)
@@ -363,4 +381,4 @@ starlette_app = Starlette(
 
 
 if __name__ == "__main__":
-    uvicorn.run(starlette_app, host="0.0.0.0", port=9000)
+    uvicorn.run(starlette_app, host="0.0.0.0", port=9003)
